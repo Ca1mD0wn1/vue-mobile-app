@@ -4,7 +4,7 @@
     <ul>
       <li>西安</li>
       <li>
-        <div class="searchBox">
+        <div class="searchBox" @click="$router.push('/search')">
           <van-image :src="logo" height="24"></van-image>
           <span class="divider">|</span>
           <van-icon name="search" size="24" />

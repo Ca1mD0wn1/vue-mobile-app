@@ -1,79 +1,93 @@
+<!-- src/views/user/IndexView.vue -->
 <template>
   <header class="header">
     <van-nav-bar left-arrow @click-left="$router.back()">
       <template #title>
-        <span class="title">订单查看</span>
+        <span class="title">个人中心</span>
+      </template>
+      <template #right>
+        <router-link v-if="userFlag" to="/set"><van-icon name="setting-o" size="18" color="#333" /></router-link>
       </template>
     </van-nav-bar>
   </header>
-
   <div class="content">
-    <van-tabs v-model:active="active">
-      <van-tab title="全部订单">
-        <van-card v-for="item of orderList" :price="item.originprice" :title="item.proname" :desc="item.time" :thumb="item.img1">
-          <template #num>
-            <van-button v-if="item.status === 0" type="warning" size="mini">去支付</van-button>
-            <van-button v-else-if="item.status === 1" type="danger" size="mini">确认收货</van-button>
-            <van-button v-else type="primary" size="mini">去评价</van-button>
-          </template>
-        </van-card>
-      </van-tab>
-      <van-tab title="待付款">
-        <van-card v-for="item of payList" :price="item.originprice" :title="item.proname" :desc="item.time" :thumb="item.img1">
-          <template #num>
-            <van-button type="warning" size="mini">去支付</van-button>
-          </template>
-        </van-card>
-      </van-tab>
-      <van-tab title="待收货">
-        <van-card v-for="item of receiptList" :price="item.originprice" :title="item.proname" :desc="item.time" :thumb="item.img1">
-          <template #num>
-            <van-button type="danger" size="mini">确认收货</van-button>
-          </template>
-        </van-card>
-      </van-tab>
-      <van-tab title="待评价">
-        <van-card v-for="item of assessList" :price="item.originprice" :title="item.proname" :desc="item.time" :thumb="item.img1">
-          <template #num>
-            <van-button type="primary" size="mini">去评价</van-button>
-          </template>
-        </van-card>
-      </van-tab>
-    </van-tabs>
+    <div class="avatarBox">
+      <van-image round width="0.8rem" height="0.8rem" src="https://fastly.jsdelivr.net/npm/@vant/assets/cat.jpeg" />
+      <a href="#" v-if="userFlag"
+        ><p>欢迎您:{{ username }}</p></a
+      >
+      <router-link v-else to="/login"><p>请点击登录</p></router-link>
+    </div>
+    <van-grid>
+      <van-grid-item icon="refund-o" text="待付款" @click="getOrder(1)" />
+      <van-grid-item icon="shop-o" text="待收货" @click="getOrder(2)" />
+      <van-grid-item icon="thumb-circle-o" text="待评价" @click="getOrder(3)" />
+      <van-grid-item icon="orders-o" text="全部订单" @click="getOrder(0)" />
+    </van-grid>
+
+    <van-cell title="地址管理" is-link @click="toAddressList" />
+    <van-cell title="我的收藏夹" is-link @click="toFavorite" />
+    <van-cell title="关于我们" is-link @click="toAbout" />
+
+    <div class="logo">
+      <van-image :src="logo"></van-image>
+    </div>
   </div>
 </template>
 
-
 <script lang="ts">
 import { defineComponent } from 'vue'
-import { getAllOrderData } from '@/api/user'
+import logo from '@/assets/logo.png'
+import { getUserInfo } from '@/api/user'
 export default defineComponent({
-  data(): any {
+  data() {
     return {
-      active: 0,
-      orderList: []
-    }
-  },
-  computed: {
-    payList(): any {
-      return this.orderList.filter((item: any) => item.status === 0)
-    },
-    receiptList(): any {
-      return this.orderList.filter((item: any) => item.status === 1)
-    },
-    assessList(): any {
-      return this.orderList.filter((item: any) => item.status === 2)
+      logo,
+      userFlag: false,
+      username: ''
     }
   },
   mounted() {
-    this.active = Number(this.$route.query.type)
-    getAllOrderData({ userid: localStorage.getItem('userid')! }).then(res => {
-      this.orderList = res.data.data
-    })
+    if (localStorage.getItem('userid')) {
+      // 用户登录
+      this.userFlag = true
+      getUserInfo({ userid: localStorage.getItem('userid')! }).then(res => {
+        console.log(res.data)
+        this.username = res.data.data[0].username ? res.data.data[0].username : res.data.data[0].tel
+      })
+    } else {
+      // 用户未登录
+      this.userFlag = false
+      // this.$router.push('/login')
+    }
+  },
+
+  methods: {
+    getOrder(type: number) {
+      if (localStorage.getItem('loginState') === 'true') {
+        this.$router.push('/userOrder?type=' + type)
+      } else {
+        this.$router.push('/login')
+      }
+    },
+    toAddressList() {
+      if (localStorage.getItem('loginState') === 'true') {
+        this.$router.push('/userAddress')
+      } else {
+        this.$router.push('/login')
+      }
+    },
+    toFavorite() {
+      this.$router.push('/userFavorite')
+    },
+    toAbout() {
+      this.$router.push('/about')
+    }
   }
 })
 </script>
-<style lang="scss">
+
+<style lang="scss" scoped>
 .header {
   // box-sizing: border-box;
   border-bottom: 3px solid #666;
@@ -84,7 +98,27 @@ export default defineComponent({
     }
   }
 }
-.btn {
-  margin-top: 50px;
+.avatarBox {
+  width: 100%;
+  height: 1rem;
+  box-sizing: border-box;
+  padding: 10px;
+  background-color: rgb(246, 210, 210);
+  display: flex;
+  a {
+    display: block;
+    display: flex;
+    align-items: center;
+    margin-left: 20px;
+    p {
+      font-size: 16px;
+      color: #333;
+    }
+  }
+}
+.logo {
+  margin: 30px auto;
+  display: flex;
+  justify-content: center;
 }
 </style>
